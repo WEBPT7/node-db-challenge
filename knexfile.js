@@ -4,6 +4,8 @@ module.exports = {
     connection: {
       filename: "./data/schemes.db3"
     },
+    useNullAsDefault: true, // needed for sqlite
+
     migrations: {
       directory: "./data/migrations"
     },

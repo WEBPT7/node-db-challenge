@@ -1,96 +1,41 @@
-const express = require("express");
+const db = require("../data/dbConfig.js");
 
-const Projects = require("./project-model.js");
+module.exports = {
+  get,
+  getById,
+  add,
+  getTasks,
+  addTask
+};
 
-const router = express.Router();
+function get() {
+  return db("projects");
+}
 
-//Projects
+function getById(id) {
+  return db("projects").where({ id });
+}
 
-router.get("/", (req, res) => {
-  Projects.get()
-    .then(projects => {
-      res.status(200).json(projects);
-    })
-    .catch(err => {
-      res.status(500).json({ message: "Error fetching projecs from database" });
-    });
-});
+function add(project) {
+  return db("projects").insert(project);
+}
 
-router.get("/:id", (req, res) => {
-  const { id } = req.params;
+function getTasks(id) {
+  return db("projects")
+    .innerJoin("tasks", "tasks.project_id", "projects.id")
+    .select(
+      "projects.project_name",
+      "projects.project_description",
+      "tasks.task_description",
+      "tasks.task_notes",
+      "tasks.completed",
+      "tasks.project_id"
+    )
+    .where({ project_id: id });
+}
 
-  Projects.getById(id)
-    .then(project => {
-      const booleanProject = {
-        ...project[0],
-        completed: !!+`${project.completed}`
-      };
-
-      if (!project[0]) {
-        return res.status(404).json({ message: "Invalid project id" });
-      } else {
-        res.status(200).json(booleanProject);
-      }
-    })
-    .catch(err => {
-      res.status(500).json({ message: "Error fetching project from database" });
-    });
-});
-
-router.post("/", (req, res) => {
-  const project = req.body;
-
-  if (!project.project_name) {
-    return res.status(404).json({ message: "Missing project name" });
-  }
-
-  Projects.add(project)
-    .then(count => {
-      res.status(201).json(count);
-    })
-    .catch(err => {
-      res.status(500).json({ message: "Error adding project to database" });
-    });
-});
-
-//Tasks
-
-router.get("/:id/tasks", (req, res) => {
-  const { id } = req.params;
-  console.log(id);
-  Projects.getTasks(id)
-    .then(tasks => {
-      console.log(tasks);
-      if (!tasks[0]) {
-        res.status(404).json({ message: "Invalid project id" });
-      } else {
-        res.status(200).json(tasks);
-      }
-    })
-    .catch(err => {
-      res.status(500).json({ message: "Error fetching tasks from database" });
-    });
-});
-
-router.post("/:id/tasks", (req, res) => {
-  const { id } = req.params;
-  const task = req.body;
-  console.log(id);
-  Projects.getById(id).then(project => {
-    if (!project[0]) {
-      return res.status(404).json({ message: "Invalid Project ID" });
-    }
-    if (!task.task_description) {
-      return res.status(404).json({ message: "Missing task description" });
-    }
-    Projects.addTask(id, task)
-      .then(count => {
-        res.status(201).json(count);
-      })
-      .catch(err => {
-        res.status(500).json({ message: "Error adding task to database" });
-      });
-  });
-});
-
-module.exports = router;
+function addTask(id, task) {
+  return db("tasks")
+    .where({ project_id: id })
+    .insert(task);
+}
